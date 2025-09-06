@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import pantryRoutes from './routes/pantry.js';
+import shoppingRoutes from './routes/shopping.js'
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -11,7 +12,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/pantry', pantryRoutes);
-
+app.use('/shopping-items', shoppingRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Smart Grocery Pantry API is running' });

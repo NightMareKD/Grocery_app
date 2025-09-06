@@ -78,4 +78,50 @@ export const pantryApi = {
   }
 };
 
+export const shoppingApi = {
+  // Get all shopping items
+  async getAll() {
+    const response = await fetch(`${API_BASE}/shopping-items`);
+    return handleResponse(response);
+  },
+
+  // Get single shopping item
+  async getById(id) {
+    const response = await fetch(`${API_BASE}/shopping-items/${id}`);
+    return handleResponse(response);
+  },
+
+  // Create new shopping item
+  async create(item) {
+    const response = await fetch(`${API_BASE}/shopping-items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(item),
+    });
+    return handleResponse(response);
+  },
+
+  // Update shopping item
+  async update(id, updates) {
+    const response = await fetch(`${API_BASE}/shopping-items/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    return handleResponse(response);
+  },
+
+  // Delete shopping item
+  async delete(id) {
+    const response = await fetch(`${API_BASE}/shopping-items/${id}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  }
+};
+
 export { ApiError };
