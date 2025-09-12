@@ -14,7 +14,7 @@ const TABS = [
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('pantry');
-
+  //Login Logic
   // Pantry state
   const [pantryItems, setPantryItems] = useState([]);
   const [pantryLoading, setPantryLoading] = useState(true);
