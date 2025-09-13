@@ -26,6 +26,8 @@ async function handleResponse(response) {
   return response.json();
 }
 
+
+
 export const pantryApi = {
   // Get all pantry items
   async getAll() {
@@ -78,49 +80,28 @@ export const pantryApi = {
   }
 };
 
+let shoppingItems = [
+  { id: 1, name: 'Milk', quantity: 2 },
+  { id: 2, name: 'Bread', quantity: 1 }
+];
+
 export const shoppingApi = {
-  // Get all shopping items
-  async getAll() {
-    const response = await fetch(`${API_BASE}/shopping-items`);
-    return handleResponse(response);
+  getAll: async () => {
+    // Simulate async
+    return new Promise(resolve => setTimeout(() => resolve([...shoppingItems]), 300));
   },
-
-  // Get single shopping item
-  async getById(id) {
-    const response = await fetch(`${API_BASE}/shopping-items/${id}`);
-    return handleResponse(response);
+  create: async (item) => {
+    const newItem = { ...item, id: Date.now() };
+    shoppingItems.push(newItem);
+    return new Promise(resolve => setTimeout(() => resolve(newItem), 300));
   },
-
-  // Create new shopping item
-  async create(item) {
-    const response = await fetch(`${API_BASE}/shopping-items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(item),
-    });
-    return handleResponse(response);
+  update: async (id, item) => {
+    shoppingItems = shoppingItems.map(i => i.id === id ? { ...i, ...item } : i);
+    return new Promise(resolve => setTimeout(() => resolve({ ...item, id }), 300));
   },
-
-  // Update shopping item
-  async update(id, updates) {
-    const response = await fetch(`${API_BASE}/shopping-items/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updates),
-    });
-    return handleResponse(response);
-  },
-
-  // Delete shopping item
-  async delete(id) {
-    const response = await fetch(`${API_BASE}/shopping-items/${id}`, {
-      method: 'DELETE',
-    });
-    return handleResponse(response);
+  delete: async (id) => {
+    shoppingItems = shoppingItems.filter(i => i.id !== id);
+    return new Promise(resolve => setTimeout(() => resolve(true), 300));
   }
 };
 

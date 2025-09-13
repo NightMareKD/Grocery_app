@@ -58,7 +58,7 @@ export default function Dashboard() {
   };
 
   // Floating Add Button (show for both tabs, or only shopping tab)
-{activeTab === 'shopping' && (
+/*{activeTab === 'shopping' && (
   <button
     onClick={handleAddItem}
     className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 z-40 flex items-center justify-center"
@@ -66,7 +66,7 @@ export default function Dashboard() {
   >
     <PlusIcon className="h-6 w-6" />
   </button>
-)}
+)}*/
 
   // Load shopping items
   const loadShoppingItems = async () => {
@@ -266,15 +266,6 @@ export default function Dashboard() {
         initialData={editingItem}
         loading={formLoading}
         isShopping={activeTab === 'shopping'}
-      />
-
-      <ItemFormModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleFormSubmit}
-        initialData={editingItem}
-        loading={formLoading}
-        isShopping={activeTab === 'shopping'} // Pass this prop
       />
 
       <ConfirmDialog
