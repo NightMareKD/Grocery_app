@@ -1,5 +1,6 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function ItemFormModal({
@@ -8,94 +9,38 @@ export default function ItemFormModal({
   onSubmit,
   initialData,
   loading,
-  isShopping
+  listId // ✅ new prop
 }) {
   const [formData, setFormData] = useState({
     name: '',
-    quantity: 1,
-    unit: '',
-    expiry_date: '',
-    notes: '',
-    category: ''
+    quantity: 1
   });
 
-  const [errors, setErrors] = useState({});
-
+  // Load initial data when editing
   useEffect(() => {
     if (initialData) {
-      setFormData({
-        name: initialData.name || '',
-        quantity: initialData.quantity || 1,
-        unit: initialData.unit || '',
-        expiry_date: initialData.expiry_date || '',
-        notes: initialData.notes || '',
-        category: initialData.category || ''
-      });
+      setFormData(initialData);
     } else {
-      setFormData({
-        name: '',
-        quantity: 1,
-        unit: '',
-        expiry_date: '',
-        notes: '',
-        category: ''
-      });
+      setFormData({ name: '', quantity: 1 });
     }
-    setErrors({});
-  }, [initialData, isOpen, isShopping]);
+  }, [initialData]);
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (formData.quantity <= 0) newErrors.quantity = 'Quantity must be greater than 0';
-    if (
-      formData.expiry_date &&
-      new Date(formData.expiry_date) < new Date().setHours(0, 0, 0, 0)
-    ) {
-      newErrors.expiry_date = 'Expiry date cannot be in the past';
-    }
-    if (isShopping && !formData.category.trim()) {
-      newErrors.category = 'Category is required for shopping items';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    try {
-      const submitData = isShopping
-        ? {
-            name: formData.name,
-            quantity: formData.quantity,
-            category: formData.category
-          }
-        : {
-            name: formData.name,
-            quantity: formData.quantity,
-            unit: formData.unit,
-            expiry_date: formData.expiry_date,
-            notes: formData.notes
-          };
-
-      await onSubmit(submitData);
-      onClose();
-    } catch (error) {
-      setErrors({ submit: error.message || 'Failed to save item' });
-    }
-  };
-
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+    if (!formData.name.trim()) return;
+    // ✅ pass listId to parent
+    onSubmit({ ...formData }, listId);
+    onClose();
   };
 
   return (
-    <Transition show={isOpen} as={Fragment}>
-      <Dialog onClose={onClose} className="fixed inset-0 z-50 overflow-y-auto">
-        {/* Overlay */}
+    <Transition.Root show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-10" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -105,193 +50,85 @@ export default function ItemFormModal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
         </Transition.Child>
 
-        <div className="flex min-h-full items-center justify-center p-4">
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0 scale-95"
-            enterTo="opacity-100 scale-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100 scale-100"
-            leaveTo="opacity-0 scale-95"
-          >
-            <Dialog.Panel className="w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/30">
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-slate-200">
-                <Dialog.Title className="text-lg font-semibold text-slate-800">
-                  {initialData
-                    ? isShopping
-                      ? 'Edit Shopping Item'
-                      : 'Edit Pantry Item'
-                    : isShopping
-                    ? 'Add Shopping Item'
-                    : 'Add Pantry Item'}
+        <div className="fixed inset-0 z-10 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            >
+              <Dialog.Panel className="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left shadow-xl transition-all">
+                <div className="absolute top-0 right-0 pt-4 pr-4">
+                  <button
+                    type="button"
+                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                    onClick={onClose}
+                  >
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </div>
+
+                <Dialog.Title className="text-lg font-medium text-gray-900">
+                  {initialData ? 'Edit Item' : 'Add Item'}
                 </Dialog.Title>
-                <button
-                  onClick={onClose}
-                  className="p-1 text-slate-400 hover:text-slate-600 transition-colors duration-200"
-                >
-                  <XMarkIcon className="h-5 w-5" />
-                </button>
-              </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                {errors.submit && (
-                  <div className="p-3 bg-danger-50 border border-danger-200 rounded-lg text-danger-700 text-sm">
-                    {errors.submit}
-                  </div>
-                )}
-
-                {/* Shared fields */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Item Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={e => handleChange('name', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                      errors.name ? 'border-danger-300' : 'border-slate-300'
-                    }`}
-                    required
-                  />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-danger-600">{errors.name}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Quantity *
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.quantity}
-                    onChange={e =>
-                      handleChange('quantity', parseFloat(e.target.value))
-                    }
-                    min="1"
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                      errors.quantity ? 'border-danger-300' : 'border-slate-300'
-                    }`}
-                    required
-                  />
-                  {errors.quantity && (
-                    <p className="mt-1 text-sm text-danger-600">
-                      {errors.quantity}
-                    </p>
-                  )}
-                </div>
-
-                {/* Shopping only */}
-                {isShopping && (
+                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Category *
+                    <label className="block text-sm font-medium text-gray-700">
+                      Item Name
                     </label>
                     <input
                       type="text"
-                      value={formData.category}
-                      onChange={e => handleChange('category', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                        errors.category
-                          ? 'border-danger-300'
-                          : 'border-slate-300'
-                      }`}
-                      required
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
-                    {errors.category && (
-                      <p className="mt-1 text-sm text-danger-600">
-                        {errors.category}
-                      </p>
-                    )}
                   </div>
-                )}
 
-                {/* Pantry only */}
-                {!isShopping && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Unit
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.unit}
-                        onChange={e => handleChange('unit', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                        placeholder="e.g., liters, kg"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Quantity
+                    </label>
+                    <input
+                      type="number"
+                      name="quantity"
+                      min="1"
+                      value={formData.quantity}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Expiry Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.expiry_date}
-                        onChange={e => handleChange('expiry_date', e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                          errors.expiry_date
-                            ? 'border-danger-300'
-                            : 'border-slate-300'
-                        }`}
-                      />
-                      {errors.expiry_date && (
-                        <p className="mt-1 text-sm text-danger-600">
-                          {errors.expiry_date}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Notes
-                      </label>
-                      <textarea
-                        value={formData.notes}
-                        onChange={e => handleChange('notes', e.target.value)}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                        placeholder="Optional notes about storage, usage, etc."
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Actions */}
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    disabled={loading}
-                    className="px-4 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-6 py-2 bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-lg hover:from-primary-600 hover:to-accent-600 disabled:opacity-50 flex items-center"
-                  >
-                    {loading && (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    )}
-                    {initialData ? 'Update' : 'Add'} Item
-                  </button>
-                </div>
-              </form>
-            </Dialog.Panel>
-          </Transition.Child>
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      className="mr-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={onClose}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {loading ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </form>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
         </div>
       </Dialog>
-    </Transition>
+    </Transition.Root>
   );
 }

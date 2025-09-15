@@ -26,8 +26,7 @@ async function handleResponse(response) {
   return response.json();
 }
 
-
-
+// ===== Pantry API =====
 export const pantryApi = {
   // Get all pantry items
   async getAll() {
@@ -80,6 +79,7 @@ export const pantryApi = {
   }
 };
 
+// ===== Mock Shopping API (local only, in-memory) =====
 let shoppingLists = [
   {
     id: 1,
@@ -102,32 +102,61 @@ let shoppingLists = [
 ];
 
 export const shoppingApi = {
+  // Get all lists
   getLists: async () => {
-    return new Promise(resolve => setTimeout(() => resolve([...shoppingLists]), 300));
+    return new Promise(resolve =>
+      setTimeout(() => resolve([...shoppingLists]), 300)
+    );
   },
+
+  // Create new list
   createList: async (name) => {
     const newList = { id: Date.now(), name, items: [] };
     shoppingLists.push(newList);
-    return new Promise(resolve => setTimeout(() => resolve(newList), 300));
+    return new Promise(resolve =>
+      setTimeout(() => resolve(newList), 300)
+    );
   },
+
+  // Add item to a list
   addItem: async (listId, item) => {
     const list = shoppingLists.find(l => l.id === listId);
     if (!list) throw new Error('List not found');
     const newItem = { ...item, id: Date.now(), checked: false };
     list.items.push(newItem);
-    return new Promise(resolve => setTimeout(() => resolve(newItem), 300));
+    return new Promise(resolve =>
+      setTimeout(() => resolve(newItem), 300)
+    );
   },
+
+  // Update item in a list
   updateItem: async (listId, itemId, updates) => {
     const list = shoppingLists.find(l => l.id === listId);
     if (!list) throw new Error('List not found');
-    list.items = list.items.map(i => i.id === itemId ? { ...i, ...updates } : i);
-    return new Promise(resolve => setTimeout(() => resolve(true), 300));
+    list.items = list.items.map(i =>
+      i.id === itemId ? { ...i, ...updates } : i
+    );
+    return new Promise(resolve =>
+      setTimeout(() => resolve(true), 300)
+    );
   },
+
+  // Delete item from a list
   deleteItem: async (listId, itemId) => {
     const list = shoppingLists.find(l => l.id === listId);
     if (!list) throw new Error('List not found');
     list.items = list.items.filter(i => i.id !== itemId);
-    return new Promise(resolve => setTimeout(() => resolve(true), 300));
+    return new Promise(resolve =>
+      setTimeout(() => resolve(true), 300)
+    );
+  },
+
+  // 🚀 Delete entire list
+  deleteList: async (listId) => {
+    shoppingLists = shoppingLists.filter(l => l.id !== listId);
+    return new Promise(resolve =>
+      setTimeout(() => resolve(true), 300)
+    );
   }
 };
 

@@ -12,7 +12,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/pantry', pantryRoutes);
-app.use('/shopping-items', shoppingRoutes);
+app.use('/api/shopping', shoppingRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Smart Grocery Pantry API is running' });
