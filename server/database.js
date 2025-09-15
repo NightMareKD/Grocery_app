@@ -65,6 +65,19 @@ function initializeDatabase() {
     )
   `;
 
+  const createUsersTableQuery = `
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT,
+      password_hash TEXT,        -- null for Google-only accounts
+      google_sub TEXT UNIQUE,    -- Google subject id (optional)
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  
+
   db.serialize(() => {
     db.run(createPantryTableQuery, (err) => {
       if (err) console.error('❌ Pantry table error:', err.message);
@@ -75,6 +88,14 @@ function initializeDatabase() {
       if (err) console.error('❌ Shopping lists table error:', err.message);
       else console.log('✅ Shopping lists table ready');
     });
+
+    db.run(createUsersTableQuery, (err) => {
+    if (err) {
+      console.error('Error creating users table:', err.message);
+    } else {
+      console.log('Users table initialized');
+    }
+  });
 
     db.run(createShoppingItemsTableQuery, (err) => {
       if (err) console.error('❌ Shopping items table error:', err.message);
