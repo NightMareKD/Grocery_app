@@ -14,13 +14,15 @@ const TABS = [
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('pantry');
-  //Login Logic
+
   // Pantry state
   const [pantryItems, setPantryItems] = useState([]);
   const [pantryLoading, setPantryLoading] = useState(true);
 
   // Shopping state
-  const [shoppingItems, setShoppingItems] = useState([]);
+  const [shoppingLists, setShoppingLists] = useState([]);
+  const [selectedListId, setSelectedListId] = useState(null);
+  const [newListName, setNewListName] = useState('');
   const [shoppingLoading, setShoppingLoading] = useState(true);
 
   // Shared modal/dialog/toast state
@@ -40,7 +42,7 @@ export default function Dashboard() {
     deletedItem: null
   });
 
-  // Load pantry items
+  // ===== Loaders =====
   const loadPantryItems = async () => {
     try {
       setPantryLoading(true);
@@ -57,90 +59,75 @@ export default function Dashboard() {
     }
   };
 
-  // Floating Add Button (show for both tabs, or only shopping tab)
-/*{activeTab === 'shopping' && (
-  <button
-    onClick={handleAddItem}
-    className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 z-40 flex items-center justify-center"
-    aria-label="Add shopping item"
-  >
-    <PlusIcon className="h-6 w-6" />
-  </button>
-)}*/
+  const loadShoppingLists = async () => {
+  setShoppingLoading(true);
+  try {
+    const lists = await shoppingApi.getLists();
+    setShoppingLists(lists);
+    if (lists.length && !selectedListId) setSelectedListId(lists[0].id);
+  } catch (error) {
+    showToast({ type: 'error', title: 'Failed to load shopping lists', message: error.message });
+  } finally {
+    setShoppingLoading(false);
+  }
+};
 
-  // Load shopping items
-  const loadShoppingItems = async () => {
-    try {
-      setShoppingLoading(true);
-      const data = await shoppingApi.getAll();
-      setShoppingItems(data);
-    } catch (error) {
-      showToast({
-        type: 'error',
-        title: 'Failed to load shopping items',
-        message: error.message
-      });
-    } finally {
-      setShoppingLoading(false);
-    }
-  };
+useEffect(() => {
+  loadPantryItems();
+  loadShoppingLists();
+}, []);
 
-  useEffect(() => {
-    loadPantryItems();
-    loadShoppingItems();
-  }, []);
+const handleAddList = async () => {
+  if (!newListName.trim()) return;
+  const list = await shoppingApi.createList(newListName.trim());
+  setShoppingLists(prev => [...prev, list]);
+  setSelectedListId(list.id);
+  setNewListName('');
+};
 
-  // Toast helpers
-  const showToast = (config) => {
-    setToast({
-      isOpen: true,
-      type: 'info',
-      showUndo: false,
-      onUndo: null,
-      deletedItem: null,
-      ...config
-    });
-  };
-  const hideToast = () => setToast(prev => ({ ...prev, isOpen: false }));
+const handleAddShoppingItem = async (item) => {
+  await shoppingApi.addItem(selectedListId, item);
+  loadShoppingLists();
+};
 
-  // Add/Edit handlers
-  const handleAddItem = () => {
-    setEditingItem(null);
-    setModalOpen(true);
-  };
-  const handleEditItem = (item) => {
-    setEditingItem(item);
-    setModalOpen(true);
-  };
-  const handleDeleteItem = (item) => {
-    setDeletingItem(item);
-    setConfirmDialogOpen(true);
-  };
+const handleToggleItem = async (itemId, checked) => {
+  await shoppingApi.updateItem(selectedListId, itemId, { checked });
+  loadShoppingLists();
+};
 
-  // Form submit handler (pantry or shopping)
+const handleDeleteShoppingItem = async (itemId) => {
+  await shoppingApi.deleteItem(selectedListId, itemId);
+  loadShoppingLists();
+};
+
+// ===== Handlers for pantry items =====
+const handleEditItem = (item) => {
+  setEditingItem(item);
+  setModalOpen(true);
+};
+
+const handleDeleteItem = (item) => {
+  setDeletingItem(item);
+  setConfirmDialogOpen(true);
+};
+
+const handleAddItem = () => {
+  setEditingItem(null);
+  setModalOpen(true);
+};
+
+
+
+  // ===== Form submit handler (pantry only) =====
   const handleFormSubmit = async (formData) => {
     setFormLoading(true);
-    const api = activeTab === 'pantry' ? pantryApi : shoppingApi;
-    const itemsSetter = activeTab === 'pantry' ? setPantryItems : setShoppingItems;
-    const items = activeTab === 'pantry' ? pantryItems : shoppingItems;
-
     try {
       if (editingItem) {
-        const updatedItem = await api.update(editingItem.id, formData);
-        itemsSetter(items.map(item => item.id === editingItem.id ? updatedItem : item));
-        showToast({
-          type: 'success',
-          title: 'Item updated',
-          message: `${updatedItem.name} has been updated successfully.`
-        });
+        const updatedItem = await pantryApi.update(editingItem.id, formData);
+        setPantryItems(pantryItems.map(i => i.id === editingItem.id ? updatedItem : i));
       } else {
-        const newItem = await api.create(formData);
-        itemsSetter([...items, newItem]);
-        showToast({
-          type: 'success',
-          title: 'Item added',
-          message: `${newItem.name} has been added.`
-        });
+        const newItem = await pantryApi.create(formData);
+        setPantryItems([...pantryItems, newItem]);
       }
     } catch (error) {
       showToast({
@@ -148,31 +135,18 @@ export default function Dashboard() {
         title: 'Form error',
         message: error.message
       });
-      throw error;
     } finally {
       setFormLoading(false);
     }
   };
 
-  // Delete handler (pantry or shopping)
+  // ===== Delete handlers =====
   const handleConfirmDelete = async () => {
     if (!deletingItem) return;
     setDeleteLoading(true);
-    const api = activeTab === 'pantry' ? pantryApi : shoppingApi;
-    const itemsSetter = activeTab === 'pantry' ? setPantryItems : setShoppingItems;
-    const items = activeTab === 'pantry' ? pantryItems : shoppingItems;
-
     try {
-      await api.delete(deletingItem.id);
-      itemsSetter(items.filter(item => item.id !== deletingItem.id));
-      showToast({
-        type: 'success',
-        title: 'Item deleted',
-        message: `${deletingItem.name} has been removed.`,
-        showUndo: true,
-        deletedItem: deletingItem,
-        onUndo: () => handleUndoDelete(deletingItem)
-      });
+      await pantryApi.delete(deletingItem.id);
+      setPantryItems(pantryItems.filter(item => item.id !== deletingItem.id));
     } catch (error) {
       showToast({
         type: 'error',
@@ -184,31 +158,10 @@ export default function Dashboard() {
     }
   };
 
-  // Undo delete handler (pantry or shopping)
-  const handleUndoDelete = async (deletedItem) => {
-    const api = activeTab === 'pantry' ? pantryApi : shoppingApi;
-    const itemsSetter = activeTab === 'pantry' ? setPantryItems : setShoppingItems;
-    const items = activeTab === 'pantry' ? pantryItems : shoppingItems;
+  const showToast = (opts) => setToast({ ...toast, isOpen: true, ...opts });
+  const hideToast = () => setToast({ ...toast, isOpen: false });
 
-    try {
-      const { id, created_at, ...itemData } = deletedItem;
-      const restoredItem = await api.create(itemData);
-      itemsSetter([...items, restoredItem]);
-      showToast({
-        type: 'info',
-        title: 'Item restored',
-        message: `${restoredItem.name} has been restored.`
-      });
-    } catch (error) {
-      showToast({
-        type: 'error',
-        title: 'Failed to restore item',
-        message: 'Please try adding the item again manually.'
-      });
-    }
-  };
-
-  // Render
+  // ===== Render =====
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-primary-50/30 to-accent-50/20">
       <Header />
@@ -231,43 +184,88 @@ export default function Dashboard() {
       </div>
 
       <main className="pb-16">
-        {activeTab === 'pantry' ? (
-          <PantryList
-            items={pantryItems}
-            loading={pantryLoading}
-            onEdit={handleEditItem}
-            onDelete={handleDeleteItem}
-          />
-        ) : (
-          <PantryList
-            items={shoppingItems}
-            loading={shoppingLoading}
-            onEdit={handleEditItem}
-            onDelete={handleDeleteItem}
-            isShopping // Optionally pass a prop to distinguish
-          />
-        )}
-      </main>
-
+  {activeTab === 'pantry' ? (
+    <PantryList
+      items={pantryItems}
+      loading={pantryLoading}
+      onEdit={handleEditItem}
+      onDelete={handleDeleteItem}
+    />
+  ) : (
+    <div className="max-w-xl mx-auto">
+      {/* List Selector */}
+      <div className="flex items-center gap-2 mb-4">
+        <select
+          value={selectedListId || ''}
+          onChange={e => setSelectedListId(Number(e.target.value))}
+          className="px-3 py-2 border rounded"
+        >
+          {shoppingLists.map(list => (
+            <option key={list.id} value={list.id}>{list.name}</option>
+          ))}
+        </select>
+        <input
+          type="text"
+          value={newListName}
+          onChange={e => setNewListName(e.target.value)}
+          placeholder="New list name"
+          className="px-3 py-2 border rounded"
+        />
+        <button
+          onClick={handleAddList}
+          className="px-4 py-2 bg-primary-500 text-white rounded"
+        >
+          Add List
+        </button>
+      </div>
+      {/* Items as checkboxes */}
+      {shoppingLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <ul className="bg-white rounded shadow p-4">
+          {(shoppingLists.find(l => l.id === selectedListId)?.items || []).map(item => (
+            <li key={item.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={item.checked}
+                  onChange={e => handleToggleItem(item.id, e.target.checked)}
+                />
+                <span className={item.checked ? 'line-through text-gray-400' : ''}>
+                  {item.name} {item.quantity ? `- Qty: ${item.quantity}` : ''}
+                </span>
+              </label>
+              <button
+                onClick={() => handleDeleteShoppingItem(item.id)}
+                className="text-red-500 hover:underline"
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {/* Floating Add Button */}
       <button
         onClick={handleAddItem}
         className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 z-40 flex items-center justify-center"
-        aria-label="Add new item"
+        aria-label="Add shopping item"
       >
         <PlusIcon className="h-6 w-6" />
       </button>
+    </div>
+  )}
+</main>
 
-      {/* Modals */}
-      <ItemFormModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleFormSubmit}
-        initialData={editingItem}
-        loading={formLoading}
-        isShopping={activeTab === 'shopping'}
-      />
-
+{/* Modals */}
+<ItemFormModal
+  isOpen={modalOpen}
+  onClose={() => setModalOpen(false)}
+  onSubmit={activeTab === 'shopping' ? handleAddShoppingItem : handleFormSubmit}
+  initialData={editingItem}
+  loading={formLoading}
+  isShopping={activeTab === 'shopping'}
+/>
       <ConfirmDialog
         isOpen={confirmDialogOpen}
         onClose={() => setConfirmDialogOpen(false)}

@@ -80,27 +80,53 @@ export const pantryApi = {
   }
 };
 
-let shoppingItems = [
-  { id: 1, name: 'Milk', quantity: 2 },
-  { id: 2, name: 'Bread', quantity: 1 }
+let shoppingLists = [
+  {
+    id: 1,
+    name: 'Today',
+    items: [
+      { id: 101, name: 'Milk', quantity: 2, checked: false },
+      { id: 102, name: 'Tea', quantity: 1, checked: false }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Tomorrow',
+    items: [
+      { id: 201, name: 'Rice', quantity: 1, checked: false },
+      { id: 202, name: 'Beans', quantity: 1, checked: false },
+      { id: 203, name: 'Pasta', quantity: 1, checked: false },
+      { id: 204, name: 'Ketchup', quantity: 1, checked: false }
+    ]
+  }
 ];
 
 export const shoppingApi = {
-  getAll: async () => {
-    // Simulate async
-    return new Promise(resolve => setTimeout(() => resolve([...shoppingItems]), 300));
+  getLists: async () => {
+    return new Promise(resolve => setTimeout(() => resolve([...shoppingLists]), 300));
   },
-  create: async (item) => {
-    const newItem = { ...item, id: Date.now() };
-    shoppingItems.push(newItem);
+  createList: async (name) => {
+    const newList = { id: Date.now(), name, items: [] };
+    shoppingLists.push(newList);
+    return new Promise(resolve => setTimeout(() => resolve(newList), 300));
+  },
+  addItem: async (listId, item) => {
+    const list = shoppingLists.find(l => l.id === listId);
+    if (!list) throw new Error('List not found');
+    const newItem = { ...item, id: Date.now(), checked: false };
+    list.items.push(newItem);
     return new Promise(resolve => setTimeout(() => resolve(newItem), 300));
   },
-  update: async (id, item) => {
-    shoppingItems = shoppingItems.map(i => i.id === id ? { ...i, ...item } : i);
-    return new Promise(resolve => setTimeout(() => resolve({ ...item, id }), 300));
+  updateItem: async (listId, itemId, updates) => {
+    const list = shoppingLists.find(l => l.id === listId);
+    if (!list) throw new Error('List not found');
+    list.items = list.items.map(i => i.id === itemId ? { ...i, ...updates } : i);
+    return new Promise(resolve => setTimeout(() => resolve(true), 300));
   },
-  delete: async (id) => {
-    shoppingItems = shoppingItems.filter(i => i.id !== id);
+  deleteItem: async (listId, itemId) => {
+    const list = shoppingLists.find(l => l.id === listId);
+    if (!list) throw new Error('List not found');
+    list.items = list.items.filter(i => i.id !== itemId);
     return new Promise(resolve => setTimeout(() => resolve(true), 300));
   }
 };
