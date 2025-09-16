@@ -1,8 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import pantryRoutes from './routes/pantry.js';
-import shoppingRoutes from './routes/shopping.js'
+import shoppingRoutes from './routes/shopping.js';
 import authRoutes from './routes/auth.js';
+import { requireAuth } from './middleware/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,6 +16,14 @@ app.use(express.json());
 app.use('/api/pantry', pantryRoutes);
 app.use('/api/shopping', shoppingRoutes);
 app.use('/api/auth', authRoutes);
+
+// ✅ Protected dashboard route
+app.get('/api/dashboard', requireAuth, (req, res) => {
+  res.json({
+    message: `Welcome to your dashboard, ${req.user.name || req.user.email}!`,
+    user: req.user, // includes id, email, name from JWT
+  });
+});
 
 // Health check
 app.get('/api/health', (req, res) => {

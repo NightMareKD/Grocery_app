@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { HomeIcon, TagIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { 
+  HomeIcon, 
+  TagIcon, 
+  PlusIcon, 
+  UserIcon, 
+  XMarkIcon,
+  ArrowRightOnRectangleIcon 
+} from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import PantryList from '../components/PantryList';
 import ItemFormModal from '../components/ItemFormModal';
-import { pantryApi, shoppingApi } from '../api/api'; // adjust if different
+import { pantryApi, shoppingApi } from '../api/api';
 
 const TABS = [
   { key: 'pantry', label: 'Pantry Inventory', icon: HomeIcon },
@@ -11,7 +18,7 @@ const TABS = [
 ];
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('pantry');
 
   // Pantry
@@ -28,6 +35,7 @@ export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [userInfoOpen, setUserInfoOpen] = useState(false);
 
   useEffect(() => {
     loadPantryItems();
@@ -41,7 +49,9 @@ export default function Dashboard() {
       setPantryItems(data);
     } catch (e) {
       console.error(e);
-    } finally { setPantryLoading(false); }
+    } finally {
+      setPantryLoading(false);
+    }
   };
 
   const loadShoppingLists = async () => {
@@ -52,7 +62,9 @@ export default function Dashboard() {
       if (lists.length && !selectedListId) setSelectedListId(lists[0].id);
     } catch (e) {
       console.error(e);
-    } finally { setShoppingLoading(false); }
+    } finally {
+      setShoppingLoading(false);
+    }
   };
 
   const handleAddList = async () => {
@@ -62,7 +74,9 @@ export default function Dashboard() {
       setShoppingLists(prev => [...prev, list]);
       setSelectedListId(list.id);
       setNewListName('');
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleAddShoppingItem = async (item) => {
@@ -70,7 +84,9 @@ export default function Dashboard() {
     try {
       await shoppingApi.addItem(selectedListId, item);
       await loadShoppingLists();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleToggleItem = async (itemId, checked) => {
@@ -83,7 +99,9 @@ export default function Dashboard() {
             : l
         )
       );
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDeleteShoppingItem = async (itemId) => {
@@ -96,7 +114,9 @@ export default function Dashboard() {
             : l
         )
       );
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleFormSubmitPantry = async (data) => {
@@ -111,16 +131,46 @@ export default function Dashboard() {
       }
       setModalOpen(false);
       setEditingItem(null);
-    } catch (e) { console.error(e); }
-    finally { setFormLoading(false); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeletePantryItem = async (itemId) => {
+    try {
+      await pantryApi.delete(itemId);
+      setPantryItems(prev => prev.filter(i => i.id !== itemId));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   const currentList = shoppingLists.find(l => l.id === selectedListId);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <header className="p-4 shadow bg-white flex justify-between">
-        <h1 className="font-semibold">Welcome {user?.name || user?.email}</h1>
+      <header className="p-4 shadow bg-white flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setUserInfoOpen(true)}
+            className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+          >
+            <UserIcon className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800"
+          >
+            <ArrowRightOnRectangleIcon className="w-5 h-5" />
+            Logout
+          </button>
+        </div>
         <nav className="flex gap-2">
           {TABS.map(t => {
             const Icon = t.icon;
@@ -128,15 +178,54 @@ export default function Dashboard() {
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
-                className={`px-4 py-2 rounded ${activeTab === t.key ? 'bg-blue-600 text-white' : 'bg-slate-200'}`}
+                className={`px-4 py-2 rounded flex items-center gap-1 ${activeTab === t.key ? 'bg-blue-600 text-white' : 'bg-slate-200'}`}
               >
-                <Icon className="w-4 h-4 inline-block mr-1" />
+                <Icon className="w-4 h-4" />
                 {t.label}
               </button>
             );
           })}
         </nav>
       </header>
+
+      {/* User Info Modal */}
+      {userInfoOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-80 max-w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">User Information</h2>
+              <button 
+                onClick={() => setUserInfoOpen(false)}
+                className="p-1 hover:bg-slate-100 rounded-full"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {user?.name && (
+                <div>
+                  <p className="text-sm text-gray-500">Name</p>
+                  <p className="font-medium">{user.name}</p>
+                </div>
+              )}
+              {user?.email && (
+                <div>
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="font-medium">{user.email}</p>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setUserInfoOpen(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="p-4">
         {activeTab === 'pantry' && (
@@ -145,7 +234,7 @@ export default function Dashboard() {
               items={pantryItems}
               loading={pantryLoading}
               onEdit={(item)=>{ setEditingItem(item); setModalOpen(true); }}
-              onDelete={(item)=>{ /* implement delete pantry item if needed */}}
+              onDelete={(item)=> handleDeletePantryItem(item.id)}
             />
           </div>
         )}
