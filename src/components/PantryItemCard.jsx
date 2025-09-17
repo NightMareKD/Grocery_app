@@ -1,120 +1,121 @@
 import { useState } from 'react';
 import { PencilIcon, TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { formatDistanceToNow, isAfter, differenceInDays } from '../utils/dateUtils';
+import { differenceInDays, formatDistanceToNow } from '../utils/dateUtils';
 
-function getExpiryStatus(expiryDate) {
-  if (!expiryDate) return { status: 'no-expiry', color: 'bg-slate-500', textColor: 'text-slate-700' };
-  
+function buildExpiryMeta(expiryDate) {
+  if (!expiryDate) {
+    return {
+      badge: 'No date',
+      variant: 'neutral',
+      daysLeft: null
+    };
+  }
   const today = new Date();
   const expiry = new Date(expiryDate);
-  const daysUntilExpiry = differenceInDays(expiry, today);
-  
-  if (daysUntilExpiry <= 0) {
-    return { status: 'expired', color: 'bg-danger-500', textColor: 'text-danger-700' };
-  } else if (daysUntilExpiry <= 3) {
-    return { status: 'critical', color: 'bg-danger-500', textColor: 'text-danger-700' };
-  } else if (daysUntilExpiry <= 14) {
-    return { status: 'warning', color: 'bg-warn-500', textColor: 'text-warn-700' };
-  } else {
-    return { status: 'good', color: 'bg-emerald-500', textColor: 'text-emerald-700' };
+  const daysLeft = differenceInDays(expiry, today);
+
+  if (isNaN(daysLeft)) {
+    return { badge: 'Invalid date', variant: 'neutral', daysLeft: null };
   }
+  if (daysLeft < 0) return { badge: 'Expired', variant: 'danger', daysLeft };
+  if (daysLeft === 0) return { badge: 'Today', variant: 'warn', daysLeft };
+  if (daysLeft <= 3) return { badge: `${daysLeft}d left`, variant: 'warn', daysLeft };
+  if (daysLeft <= 14) return { badge: `${daysLeft}d left`, variant: 'soon', daysLeft };
+  return { badge: `${daysLeft}d left`, variant: 'ok', daysLeft };
 }
 
+const variantClasses = {
+  danger: 'bg-red-100 text-red-700 border-red-300',
+  warn: 'bg-amber-100 text-amber-700 border-amber-300',
+  soon: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+  ok: 'bg-green-100 text-green-700 border-green-300',
+  neutral: 'bg-slate-100 text-slate-600 border-slate-300'
+};
+
 export default function PantryItemCard({ item, onEdit, onDelete }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const expiryStatus = getExpiryStatus(item.expiry_date);
-  const isOutOfStock = item.quantity <= 0;
+  const [hover, setHover] = useState(false);
+  const expiryMeta = buildExpiryMeta(item.expiry_date);
+  const isOut = item.quantity <= 0;
 
   return (
     <div
-      className={`
-        bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl 
-        transition-all duration-300 overflow-hidden border border-white/30
-        ${isHovered ? 'transform -translate-y-1 scale-[1.02]' : ''}
-        ${isOutOfStock ? 'opacity-75' : ''}
-        animate-fade-in
-      `}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={`rounded-xl border border-slate-200 bg-white shadow-sm transition
+        ${hover ? 'shadow-md translate-y-[-2px]' : ''}
+        ${isOut ? 'opacity-80' : ''}`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
     >
-      <div className="p-6">
-        {/* Header with name and actions */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-slate-800 truncate">
-              {item.name}
-            </h3>
-            {isOutOfStock && (
-              <div className="flex items-center mt-1 text-danger-600">
-                <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">Out of Stock</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center space-x-2 ml-3">
-            <button
-              onClick={() => onEdit(item)}
-              className="p-2 text-slate-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors duration-200"
-              aria-label="Edit item"
-            >
-              <PencilIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onDelete(item)}
-              className="p-2 text-slate-500 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors duration-200"
-              aria-label="Delete item"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          </div>
+      <div className="p-4 flex flex-col gap-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-slate-800 leading-snug break-words">
+                {item.name}
+              </h3>
+              {isOut && (
+                <div className="mt-1 flex items-center text-xs font-medium text-red-600">
+                  <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
+                  Out of stock
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => onEdit(item)}
+                className="p-2 rounded-md text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                aria-label="Edit item"
+              >
+                <PencilIcon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => onDelete(item)}
+                className="p-2 rounded-md text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                aria-label="Delete item"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </div>
         </div>
 
-        {/* Quantity and Unit */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="text-2xl font-bold text-slate-800">
+        {/* Middle row: quantity + expiry badge */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-bold text-slate-800 tabular-nums">
               {item.quantity}
-            </div>
+            </span>
             {item.unit && (
-              <div className="text-sm text-slate-600 bg-slate-100 px-2 py-1 rounded-md">
+              <span className="text-xs font-medium px-2 py-1 rounded bg-slate-100 text-slate-600">
                 {item.unit}
-              </div>
+              </span>
             )}
           </div>
-          
-          {/* Expiry Badge */}
-          {item.expiry_date ? (
-            <div className={`
-              inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-              ${expiryStatus.color} text-white shadow-sm
-            `}>
-              {formatDistanceToNow(item.expiry_date)}
-            </div>
-          ) : (
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-500 text-white shadow-sm">
-              No expiry
-            </div>
-          )}
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium
+              ${variantClasses[expiryMeta.variant]}`}
+          >
+            {expiryMeta.badge}
+          </span>
         </div>
 
-        {/* Notes */}
+        {/* Notes (optional) */}
         {item.notes && (
-          <div className="mt-3 pt-3 border-t border-slate-200">
-            <p className="text-sm text-slate-600 line-clamp-2">
-              {item.notes}
-            </p>
+          <div className="text-sm text-slate-600 border-t border-slate-100 pt-3">
+            {item.notes}
           </div>
         )}
 
-        {/* Expiry Date */}
-        {item.expiry_date && (
-          <div className="mt-3 pt-3 border-t border-slate-200">
-            <p className={`text-xs ${expiryStatus.textColor} font-medium`}>
-              Expires: {new Date(item.expiry_date).toLocaleDateString()}
-            </p>
+        {/* Expiry detail (always show a line for clarity) */}
+        <div className="text-xs text-slate-500 border-t border-slate-100 pt-3 flex flex-wrap gap-x-4 gap-y-1">
+          <div>
+            Added: {item.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}
           </div>
-        )}
+          <div>
+            Expires:{' '}
+            {item.expiry_date
+              ? `${new Date(item.expiry_date).toLocaleDateString()} (${formatDistanceToNow(item.expiry_date)})`
+              : 'No date'}
+          </div>
+        </div>
       </div>
     </div>
   );

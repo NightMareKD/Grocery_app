@@ -66,7 +66,7 @@ export default function SortFilterBar({
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute right-0 mt-2 w-56 rounded-xl bg-white/95 backdrop-blur-sm shadow-lg border border-white/30 focus:outline-none z-10">
+            <Menu.Items className="absolute right-0 mt-2 w-56 rounded-xl bg-white/95 backdrop-blur-sm shadow-lg border border-white/30 focus:outline-none z-[9999]">
               <div className="p-2">
                 {sortOptions.map((option) => (
                   <Menu.Item key={option.value}>

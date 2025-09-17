@@ -89,6 +89,18 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteList = async () => {
+    if (!selectedListId) return;
+    try {
+      await shoppingApi.deleteList(selectedListId);
+      setShoppingLists(prev => prev.filter(l => l.id !== selectedListId));
+      const remaining = shoppingLists.filter(l => l.id !== selectedListId);
+      setSelectedListId(remaining[0]?.id ?? null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  
   const handleToggleItem = async (itemId, checked) => {
     try {
       await shoppingApi.updateItem(selectedListId, itemId, { checked });
@@ -120,23 +132,30 @@ export default function Dashboard() {
   };
 
   const handleFormSubmitPantry = async (data) => {
-    setFormLoading(true);
-    try {
-      if (editingItem) {
-        const updated = await pantryApi.update(editingItem.id, data);
-        setPantryItems(prev => prev.map(i => i.id === editingItem.id ? updated : i));
-      } else {
-        const created = await pantryApi.create(data);
-        setPantryItems(prev => [...prev, created]);
-      }
-      setModalOpen(false);
-      setEditingItem(null);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setFormLoading(false);
+  setFormLoading(true);
+  try {
+    // Map expirationDate to expiry_date
+    const itemData = {
+      ...data,
+      expiry_date: data.expirationDate, // <-- map here
+    };
+    delete itemData.expirationDate; // Remove the form field
+
+    if (editingItem) {
+      const updated = await pantryApi.update(editingItem.id, itemData);
+      setPantryItems(prev => prev.map(i => i.id === editingItem.id ? updated : i));
+    } else {
+      const created = await pantryApi.create(itemData);
+      setPantryItems(prev => [...prev, created]);
     }
-  };
+    setModalOpen(false);
+    setEditingItem(null);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setFormLoading(false);
+  }
+};
 
   const handleDeletePantryItem = async (itemId) => {
     try {
@@ -229,7 +248,7 @@ export default function Dashboard() {
 
       <main className="p-4">
         {activeTab === 'pantry' && (
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <PantryList
               items={pantryItems}
               loading={pantryLoading}
@@ -241,11 +260,11 @@ export default function Dashboard() {
 
         {activeTab === 'shopping' && (
           <div className="max-w-xl mx-auto">
-            <div className="flex gap-2 mb-4">
+            <div className="flex flex-wrap gap-2 mb-4 items-center">
               <select
                 value={selectedListId || ''}
                 onChange={e => setSelectedListId(Number(e.target.value))}
-                className="border px-2 py-2 rounded flex-1"
+                className="border px-2 py-2 rounded flex-1 min-w-[200px]"
               >
                 {shoppingLists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
@@ -253,10 +272,24 @@ export default function Dashboard() {
                 value={newListName}
                 onChange={e => setNewListName(e.target.value)}
                 placeholder="New list name"
-                className="border px-2 py-2 rounded flex-1"
+                className="border px-2 py-2 rounded flex-1 min-w-[200px]"
               />
               <button onClick={handleAddList} className="bg-blue-600 text-white px-3 py-2 rounded">
-                Add
+                Add List
+              </button>
+              <button
+                onClick={handleDeleteList}
+                disabled={!selectedListId}
+                className="px-3 py-2 rounded border border-red-300 text-red-600 disabled:opacity-50"
+              >
+                Delete List
+              </button>
+              <button
+                onClick={() => { setEditingItem(null); setModalOpen(true); }}
+                disabled={!selectedListId}
+                className="px-3 py-2 rounded border border-slate-300 disabled:opacity-50"
+              >
+                Add Item
               </button>
             </div>
             {shoppingLoading ? (
