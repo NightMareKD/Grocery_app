@@ -12,6 +12,7 @@ import PantryList from '../components/PantryList';
 import ItemFormModal from '../components/ItemFormModal';
 import { pantryApi, shoppingApi } from '../api/api';
 import bgImage from '../images/pexels-reneterp-1358900.jpg';
+import RecipeChatWidget from '../components/RecipeChatWidget';
 
 const TABS = [
   { key: 'pantry', label: 'Pantry Inventory', icon: HomeIcon },
@@ -390,6 +391,7 @@ export default function Dashboard() {
       loading={formLoading}
       isShopping={activeTab === "shopping"}
     />
+    <RecipeChatWidget />
   </div>
 );
 }
