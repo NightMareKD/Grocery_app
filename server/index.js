@@ -3,6 +3,7 @@ import cors from 'cors';
 import pantryRoutes from './routes/pantry.js';
 import shoppingRoutes from './routes/shopping.js';
 import authRoutes from './routes/auth.js';
+import mcpRoutes from './routes/mcp.js';
 import { requireAuth } from './middleware/auth.js';
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/pantry', pantryRoutes);
 app.use('/api/shopping', shoppingRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/mcp', mcpRoutes);
 
 // ✅ Protected dashboard route
 app.get('/api/dashboard', requireAuth, (req, res) => {

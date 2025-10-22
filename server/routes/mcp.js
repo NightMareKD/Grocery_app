@@ -41,4 +41,60 @@ router.post('/recipes', async (req, res) => {
   }
 });
 
+// POST /api/mcp/analyze
+router.post('/analyze', async (req, res) => {
+  const { text } = req.body;
+
+  if (!text) {
+    return res.status(400).json({ error: 'Text is required' });
+  }
+
+  try {
+    const response = await fetch('https://isharadeshan3-distilbert-mcp-server2.hf.space/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return res.status(response.status).json({ error: error.error || 'Analysis failed' });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Analyze Endpoint Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/mcp/embed
+router.post('/embed', async (req, res) => {
+  const { text } = req.body;
+
+  if (!text) {
+    return res.status(400).json({ error: 'Text is required' });
+  }
+
+  try {
+    const response = await fetch('https://isharadeshan3-distilbert-mcp-server2.hf.space/embed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return res.status(response.status).json({ error: error.error || 'Embedding failed' });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Embed Endpoint Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
