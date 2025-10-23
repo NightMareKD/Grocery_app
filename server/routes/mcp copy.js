@@ -16,7 +16,7 @@ router.post('/recipes', async (req, res) => {
   try {
     // This model (T5) is trained to take ingredients as input.
     // We add a prefix for the best results.
-    const fullPrompt = `You are a professional chef. Summarize (and format for easy readability. add bullet points where necessary) the recipe and only the recipe relevant for the following food:
+    const fullPrompt = `You are a professional chef. Summarize the recipe and only the recipe relevant for the following food:
 
 food: ${prompt}
 
@@ -36,7 +36,7 @@ Provide a concise recipe with:
       },
       body: JSON.stringify({
         prompt: fullPrompt,
-        max_new_tokens: 600, // Limit output length for concise recipes
+        max_new_tokens: 300, // Limit output length for concise recipes
         temperature: 0.7, // Lower temperature for more deterministic output
         top_p: 0.8, // Reduce diversity for focused results
         num_return_sequences: 1
@@ -69,11 +69,8 @@ Provide a concise recipe with:
       ? hfData.results[0]
       : 'The model did not generate a complete recipe. Please try again with a more specific request.';
 
-    // Structure the recipe output for better readability
-    const structuredReply = structureRecipe(reply);
-
-    console.log('✅ Final Response Sent to Frontend:', { reply: structuredReply });
-    res.json({ reply: structuredReply });
+    console.log('✅ Final Response Sent to Frontend:', { reply });
+    res.json({ reply });
 
   } catch (error) {
     console.error('❌ MCP Server Error:', error);
@@ -81,63 +78,6 @@ Provide a concise recipe with:
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
-
-// Helper function to structure the recipe output
-function structureRecipe(recipe) {
-  const lines = recipe.split('\n');
-  let structured = '';
-  let inIngredients = false;
-  let inSteps = false;
-  let ingredientCount = 1;
-  let stepCount = 1;
-
-  for (const line of lines) {
-    const lowerLine = line.toLowerCase().trim();
-
-    // Detect Ingredients section
-    if (lowerLine.includes('ingredient') && !inSteps) {
-      structured += `\n**Ingredients:**\n`;
-      inIngredients = true;
-      inSteps = false;
-      ingredientCount = 1;
-      continue;
-    }
-
-    // Detect Steps/Instructions section
-    if ((lowerLine.includes('step') || lowerLine.includes('instruction') || lowerLine.includes('direction')) && !inIngredients) {
-      structured += `\n**Steps:**\n`;
-      inIngredients = false;
-      inSteps = true;
-      stepCount = 1;
-      continue;
-    }
-
-    // Process ingredients
-    if (inIngredients && line.trim()) {
-      // Remove existing bullet points or dashes
-      let cleanedLine = line.trim().replace(/^[-•*]\s*/, '');
-      if (cleanedLine) {
-        structured += `${ingredientCount}. ${cleanedLine}\n`;
-        ingredientCount++;
-      }
-    } 
-    // Process steps
-    else if (inSteps && line.trim()) {
-      // Remove existing numbers or bullet points
-      let cleanedLine = line.trim().replace(/^\d+[\.\)]\s*/, '').replace(/^[-•*]\s*/, '');
-      if (cleanedLine) {
-        structured += `${stepCount}. ${cleanedLine}\n`;
-        stepCount++;
-      }
-    } 
-    // Other content (description, cooking time, servings, etc.)
-    else if (line.trim()) {
-      structured += `${line.trim()}\n`;
-    }
-  }
-
-  return structured.trim();
-}
 
 // ------------------------
 // POST /api/mcp/analyze
