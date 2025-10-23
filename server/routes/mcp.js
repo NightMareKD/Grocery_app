@@ -1,12 +1,12 @@
 import express from 'express';
-import fetch from 'node-fetch';
 
 const router = express.Router();
 
+// ------------------------
 // POST /api/mcp/recipes
+// ------------------------
 router.post('/recipes', async (req, res) => {
   const { prompt } = req.body;
-
   console.log('📝 MCP Recipe Request:', { prompt });
 
   if (!prompt) {
@@ -14,66 +14,75 @@ router.post('/recipes', async (req, res) => {
   }
 
   try {
-    // Step 1: Search the internet for relevant information
-    console.log('🔍 Searching the internet for relevant recipes...');
-    const searchResponse = await fetch(`https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(prompt)}&key=${process.env.GOOGLE_API_KEY}&cx=${process.env.SEARCH_ENGINE_ID}`);
-    const searchData = await searchResponse.json();
+    // This model (T5) is trained to take ingredients as input.
+    // We add a prefix for the best results.
+    const fullPrompt = `You are a professional chef. Summarize the recipe and only the recipe relevant for the following food:
 
-    if (!searchResponse.ok || !searchData.items || searchData.items.length === 0) {
-      return res.status(404).json({ error: 'No relevant information found on the internet.' });
-    }
+food: ${prompt}
 
-    // Extract the top result
-    const topResult = searchData.items[0];
-    const content = `${topResult.title}\n\n${topResult.snippet}\n\nRead more: ${topResult.link}`;
+Provide a concise recipe with:
+- A brief description of the dish
+- Key ingredients
+- Simplified cooking steps
+- Total cooking time
+- Number of servings.`;
 
-    // Step 2: Use Hugging Face model to process the gathered information
-    console.log('🤖 Sending gathered information to Hugging Face model...');
+    // Hugging Face Space request
+    console.log('🤖 Sending request to Hugging Face Space...');
     const hfResponse = await fetch('https://isharadeshan3-cooking.hf.space/invoke', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        prompt: `Summarize the following recipe information:\n\n${content}`,
-        max_new_tokens: 256,
-        temperature: 0.7,
-        top_p: 0.95,
-        num_return_sequences: 1,
+        prompt: fullPrompt,
+        max_new_tokens: 800,
+        temperature: 0.8,
+        top_p: 0.9,
+        num_return_sequences: 1
       }),
     });
 
+    console.log('🤖 Response Status:', hfResponse.status);
+    const responseText = await hfResponse.text();
+    console.log('🤖 Raw Response:', responseText);
+
     if (!hfResponse.ok) {
-      const error = await hfResponse.json().catch(() => ({ error: 'Request failed' }));
+      let error;
+      try { error = JSON.parse(responseText); }
+      catch { error = { error: responseText || 'Request failed' }; }
+      
+      // Handle model loading error (503)
+      if (hfResponse.status === 503 && error.error && error.error.includes("loading")) {
+        console.warn('⚠️ Model is loading, please try again...');
+        return res.status(503).json({ error: 'Model is loading, please try again in a moment.' });
+      }
+
       console.error('❌ Hugging Face Error:', error);
       return res.status(hfResponse.status).json({ error: error.detail || error.error || 'Model inference failed' });
     }
 
-    const hfData = await hfResponse.json();
-    const reply = hfData.results && hfData.results.length > 0
+    const hfData = JSON.parse(responseText);
+    console.log('🤖 Parsed model output:', JSON.stringify(hfData, null, 2));
+
+    let reply = hfData.results && hfData.results.length > 0
       ? hfData.results[0]
-      : hfData.reply || hfData.response || hfData.generated_text || 'No response generated.';
+      : 'The model did not generate a complete recipe. Please try again with a more specific request.';
 
-    // Step 3: Format the final response
-    const formattedReply = `
-### Recipe for ${prompt}
+    console.log('✅ Final Response Sent to Frontend:', { reply });
+    res.json({ reply });
 
-**Introduction:**
-This recipe is based on the top search result for "${prompt}". Follow the steps below to create a delicious dish.
-
-**Details:**
-${content}
-
-**Generated Recipe:**
-${reply}
-`;
-
-    res.json({ reply: formattedReply });
   } catch (error) {
     console.error('❌ MCP Server Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Error Stack:', error.stack);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
+// ------------------------
 // POST /api/mcp/analyze
+// (No changes needed)
+// ------------------------
 router.post('/analyze', async (req, res) => {
   const { text } = req.body;
 
@@ -101,7 +110,10 @@ router.post('/analyze', async (req, res) => {
   }
 });
 
+// ------------------------
 // POST /api/mcp/embed
+// (No changes needed)
+// ------------------------
 router.post('/embed', async (req, res) => {
   const { text } = req.body;
 

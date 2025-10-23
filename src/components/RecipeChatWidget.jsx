@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChatBubbleLeftRightIcon, PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { askRecipe } from '../api/chat';
 
@@ -7,7 +7,7 @@ export default function RecipeChatWidget() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi! Ask me for recipes. For example: “quick dinner with chicken and rice”.' }
+    { role: 'assistant', content: '👩‍🍳 Hi! I’m EcoChef. Ask me for any recipe!' }
   ]);
 
   const listRef = useRef(null);
@@ -26,7 +26,7 @@ export default function RecipeChatWidget() {
       const reply = await askRecipe(text);
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I could not fetch a recipe right now.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '❌ Sorry, I could not fetch a recipe right now.' }]);
     } finally {
       setSending(false);
     }
@@ -53,7 +53,7 @@ export default function RecipeChatWidget() {
       {open && (
         <div className="fixed bottom-28 right-6 z-50 w-[360px] max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-xl">
           <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
-            <div className="font-semibold text-slate-800">Recipe Assistant</div>
+            <div className="font-semibold text-slate-800">EcoChef Assistant</div>
             <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-slate-100" aria-label="Close">
               <XMarkIcon className="h-5 w-5 text-slate-600" />
             </button>
@@ -73,6 +73,13 @@ export default function RecipeChatWidget() {
                 </div>
               </div>
             ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-800 rounded-bl-sm">
+                  <span className="animate-pulse">EcoChef is thinking...</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-3 border-t border-slate-100">
